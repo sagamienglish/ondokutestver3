@@ -436,10 +436,17 @@ ${referenceText}
         }
         if (!selectedMimeType) return alert("お使いのブラウザは動画の書き出しをサポートしていません。");
 
+        setIsExporting(true);
+
         try {
-          setIsExporting(true);
+          // 1. ユーザーアクション直後にAudioContextを初期化・再開
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+          }
+
+          // 2. html2canvasで画像を生成（非同期処理で数秒かかる場合があります）
           const html2canvas = await loadHtml2Canvas();
-          
           const target = exportContainerRef.current;
           await new Promise(r => setTimeout(r, 100));
 
@@ -450,9 +457,11 @@ ${referenceText}
             logging: false
           });
 
+          // 3. 動画と音声のストリームを準備
           const videoStream = canvas.captureStream(30);
-          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-          const audio = new Audio(URL.createObjectURL(audioBlob));
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          
           const source = audioContext.createMediaElementSource(audio);
           const destination = audioContext.createMediaStreamDestination();
           source.connect(destination);
@@ -473,11 +482,22 @@ ${referenceText}
             a.download = `音読結果_${userInfo.name}_L${userInfo.lesson}-${selectedPart}.${ext}`;
             a.click();
             URL.revokeObjectURL(url);
+            URL.revokeObjectURL(audioUrl);
             setIsExporting(false);
           };
           
           recorder.start();
-          audio.play();
+          
+          // 4. 音声の再生と録画ループ開始 (エラーハンドリング追加)
+          try {
+            await audio.play();
+          } catch (playError) {
+            console.error("Audio play error:", playError);
+            recorder.stop();
+            setIsExporting(false);
+            alert("ブラウザのセキュリティ設定により動画作成が一時停止しました。\nお手数ですが、もう一度「結果を動画で保存」ボタンを押してください。");
+            return;
+          }
 
           const drawLoop = () => {
             if (!audio.ended && recorder.state === 'recording') {
@@ -488,11 +508,22 @@ ${referenceText}
           };
           drawLoop();
 
-          audio.onended = () => recorder.stop();
+          // 5. 終了処理
+          audio.onended = () => {
+             if (recorder.state === 'recording') recorder.stop();
+          };
+
+          // 6. フリーズ防止の強制終了タイマー（最大2分で強制的に保存・ロード画面解除）
+          setTimeout(() => {
+             if (recorder.state === 'recording') {
+                 recorder.stop();
+                 console.log("Timeout: Forced stop");
+             }
+          }, 120000);
 
         } catch (error) {
-          console.error(error);
-          alert("動画の書き出しに失敗しました。");
+          console.error("Export error:", error);
+          alert("動画の書き出し中にエラーが発生しました。\n" + error.message);
           setIsExporting(false);
         }
       };
