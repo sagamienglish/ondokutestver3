@@ -445,7 +445,11 @@ ${referenceText}
             await audioContext.resume();
           }
 
-          // 2. html2canvasで画像を生成（非同期処理で数秒かかる場合があります）
+          // 2. 音声データをAudioBufferに変換 (これで自動再生ブロックを完全に回避)
+          const arrayBuffer = await audioBlob.arrayBuffer();
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+          // 3. html2canvasで画像を生成
           const html2canvas = await loadHtml2Canvas();
           const target = exportContainerRef.current;
           await new Promise(r => setTimeout(r, 100));
@@ -457,16 +461,20 @@ ${referenceText}
             logging: false
           });
 
-          // 3. 動画と音声のストリームを準備
+          // 4. ストリームの準備
           const videoStream = canvas.captureStream(30);
-          const audioUrl = URL.createObjectURL(audioBlob);
-          const audio = new Audio(audioUrl);
           
-          const source = audioContext.createMediaElementSource(audio);
-          const destination = audioContext.createMediaStreamDestination();
-          source.connect(destination);
+          const sourceNode = audioContext.createBufferSource();
+          sourceNode.buffer = audioBuffer;
           
-          const audioStream = destination.stream;
+          // 録音用のアウトプット
+          const streamDestination = audioContext.createMediaStreamDestination();
+          sourceNode.connect(streamDestination);
+          
+          // スピーカーからも音を出す
+          sourceNode.connect(audioContext.destination);
+
+          const audioStream = streamDestination.stream;
           const combinedStream = new MediaStream([...videoStream.getVideoTracks(), ...audioStream.getAudioTracks()]);
           
           const recorder = new MediaRecorder(combinedStream, { mimeType: selectedMimeType });
@@ -482,25 +490,17 @@ ${referenceText}
             a.download = `音読結果_${userInfo.name}_L${userInfo.lesson}-${selectedPart}.${ext}`;
             a.click();
             URL.revokeObjectURL(url);
-            URL.revokeObjectURL(audioUrl);
             setIsExporting(false);
           };
           
+          // 5. 録画と再生を開始 (Web Audio APIならここでブロックされない！)
           recorder.start();
-          
-          // 4. 音声の再生と録画ループ開始 (エラーハンドリング追加)
-          try {
-            await audio.play();
-          } catch (playError) {
-            console.error("Audio play error:", playError);
-            recorder.stop();
-            setIsExporting(false);
-            alert("ブラウザのセキュリティ設定により動画作成が一時停止しました。\nお手数ですが、もう一度「結果を動画で保存」ボタンを押してください。");
-            return;
-          }
+          sourceNode.start();
 
+          // 6. 描画ループ
+          let isPlaying = true;
           const drawLoop = () => {
-            if (!audio.ended && recorder.state === 'recording') {
+            if (isPlaying && recorder.state === 'recording') {
               const ctx = canvas.getContext('2d');
               ctx.drawImage(canvas, 0, 0);
               requestAnimationFrame(drawLoop);
@@ -508,18 +508,19 @@ ${referenceText}
           };
           drawLoop();
 
-          // 5. 終了処理
-          audio.onended = () => {
+          // 7. 終了処理
+          sourceNode.onended = () => {
+             isPlaying = false;
              if (recorder.state === 'recording') recorder.stop();
           };
 
-          // 6. フリーズ防止の強制終了タイマー（最大2分で強制的に保存・ロード画面解除）
+          // 8. フリーズ防止の強制終了タイマー（音声の長さ + 5秒）
           setTimeout(() => {
              if (recorder.state === 'recording') {
+                 isPlaying = false;
                  recorder.stop();
-                 console.log("Timeout: Forced stop");
              }
-          }, 120000);
+          }, (audioBuffer.duration + 5) * 1000);
 
         } catch (error) {
           console.error("Export error:", error);
