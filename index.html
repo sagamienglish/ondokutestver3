@@ -410,6 +410,52 @@ ${commonEvalPrompt}
         return { text: "Practice more!", color: "text-gray-600" };
       };
 
+      // WAV変換用ヘルパー関数
+      const audioBufferToWav = (buffer) => {
+        let numOfChan = buffer.numberOfChannels,
+            length = buffer.length * numOfChan * 2 + 44,
+            bufferArray = new ArrayBuffer(length),
+            view = new DataView(bufferArray),
+            channels = [], i, sample,
+            offset = 0,
+            pos = 0;
+
+        const setUint16 = (data) => { view.setUint16(pos, data, true); pos += 2; };
+        const setUint32 = (data) => { view.setUint32(pos, data, true); pos += 4; };
+
+        // write WAV header
+        setUint32(0x46464952);                         // "RIFF"
+        setUint32(length - 8);                         // file length - 8
+        setUint32(0x45564157);                         // "WAVE"
+
+        setUint32(0x20746d66);                         // "fmt " chunk
+        setUint32(16);                                 // length = 16
+        setUint16(1);                                  // PCM (uncompressed)
+        setUint16(numOfChan);
+        setUint32(buffer.sampleRate);
+        setUint32(buffer.sampleRate * 2 * numOfChan);  // avg. bytes/sec
+        setUint16(numOfChan * 2);                      // block-align
+        setUint16(16);                                 // 16-bit
+
+        setUint32(0x61746164);                         // "data" - chunk
+        setUint32(length - pos - 4);                   // chunk length
+
+        for (i = 0; i < buffer.numberOfChannels; i++) {
+          channels.push(buffer.getChannelData(i));
+        }
+
+        while (pos < length) {
+          for (i = 0; i < numOfChan; i++) {
+            sample = Math.max(-1, Math.min(1, channels[i][offset]));
+            sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+            view.setInt16(pos, sample, true);
+          }
+          offset++;
+        }
+
+        return new Blob([bufferArray], {type: "audio/wav"});
+      };
+
       const exportVideo = async () => {
         if (!exportContainerRef.current || !audioBlob) return;
         
@@ -517,17 +563,32 @@ ${commonEvalPrompt}
             exportAudio();
           }
         }
-      }; // ★ここが抜けていました（exportVideo関数の閉じカッコ）
+      };
 
-      const exportAudio = () => {
+      const exportAudio = async () => {
         if (!audioBlob) return;
-        const url = URL.createObjectURL(audioBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        // 拡張子は録音時のMIMEタイプに合わせて.webm または .mp4 などになります
-        a.download = `音声_${userInfo.name}_L${userInfo.lesson}-${selectedPart}.webm`; 
-        a.click();
-        URL.revokeObjectURL(url);
+        setIsExporting(true); // 変換中のローディング表示
+        
+        try {
+          // AudioContextを使ってWAV形式に変換する
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const arrayBuffer = await audioBlob.arrayBuffer();
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          
+          const wavBlob = audioBufferToWav(audioBuffer);
+          const url = URL.createObjectURL(wavBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          // ダウンロード拡張子を .wav に変更
+          a.download = `音声_${userInfo.name}_L${userInfo.lesson}-${selectedPart}.wav`; 
+          a.click();
+          URL.revokeObjectURL(url);
+        } catch (error) {
+          console.error("Audio export error:", error);
+          alert("音声ファイルの保存中にエラーが発生しました。\n" + error.message);
+        } finally {
+          setIsExporting(false);
+        }
       };
 
       const speakWord = (word) => {
@@ -947,9 +1008,9 @@ ${commonEvalPrompt}
             {isExporting && (
               <div className="fixed z-[99999] bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center text-white" style={{ top: 0, left: 0, right: 0, bottom: 0 }}>
                 <IconLoader className="w-20 h-20 animate-spin text-blue-500 mb-6" />
-                <h3 className="text-3xl font-bold mb-4">動画を作成しています...</h3>
+                <h3 className="text-3xl font-bold mb-4">ファイルを作成しています...</h3>
                 <p className="text-lg text-slate-300 bg-slate-800/50 p-4 rounded-lg">
-                  録音した音声と同じ長さの時間がかかります。<br />
+                  録音した音声と同じ長さの時間がかかる場合があります。<br />
                   この画面のまましばらくお待ちください。
                 </p>
               </div>
@@ -1035,7 +1096,7 @@ ${commonEvalPrompt}
                 {isHistoryView ? '履歴一覧に戻る' : 'トップに戻る'}
               </button>
             </div>
-          </div> /* ←★この閉じタグが抜けていました */
+          </div>
         );
       };
 
