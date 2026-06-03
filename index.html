@@ -578,8 +578,8 @@ ${commonEvalPrompt}
 
       const exportAudio = async () => {
         if (!audioBlob) return;
-        setIsExporting(true); // 変換中のローディング表示
-        
+        setIsExporting(true);
+
         try {
           // UIが更新されるのを待つ
           await new Promise(r => setTimeout(r, 100));
@@ -591,15 +591,35 @@ ${commonEvalPrompt}
           }
           const arrayBuffer = await audioBlob.arrayBuffer();
           const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-          
           const wavBlob = audioBufferToWav(audioBuffer);
+          const fileName = `音声_${userInfo.name}_L${userInfo.lesson}-${selectedPart}.wav`;
+
+          // 【新規追加】Web Share APIを使って端末の共有メニューを呼び出す
+          const file = new File([wavBlob], fileName, { type: "audio/wav" });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: fileName,
+              });
+              return; // 共有が成功したらここで処理を終了
+            } catch (shareError) {
+              console.log("共有がキャンセルされたか失敗しました", shareError);
+              // ユーザーがキャンセルした場合などは、下のフォールバック処理へ進む
+            }
+          }
+
+          // 従来のダウンロード方式（ChromeやPC向けのフォールバック）
           const url = URL.createObjectURL(wavBlob);
           const a = document.createElement('a');
           a.href = url;
-          // ダウンロード拡張子を .wav に変更
-          a.download = `音声_${userInfo.name}_L${userInfo.lesson}-${selectedPart}.wav`; 
+          a.download = fileName;
+          // 一部のブラウザ対策としてDOMに一度追加してからクリックさせる
+          document.body.appendChild(a);
           a.click();
+          document.body.removeChild(a);
           URL.revokeObjectURL(url);
+
         } catch (error) {
           console.error("Audio export error:", error);
           alert("音声ファイルの保存中にエラーが発生しました。\n" + error.message);
