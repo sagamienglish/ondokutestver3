@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>音読検定 ver.4.1.12</title>
+  <title>音読検定 ver.4.2.0</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -14,6 +14,11 @@
   
   <!-- Babel (ブラウザ内でJSXを変換) -->
   <script src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
+
+  <!-- Brand typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Zen+Kaku+Gothic+New:wght@700;900&display=swap" rel="stylesheet">
 
   <style>
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -28,6 +33,69 @@
       transform: skewX(-20deg); animation: shine 2s infinite;
     }
     @keyframes shine { 100% { left: 200%; } }
+    .ondoku-wordmark {
+      font-family: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN", sans-serif;
+      font-feature-settings: "palt" 0;
+      font-weight: 900;
+    }
+    .ondoku-latin {
+      font-family: "Space Grotesk", "Helvetica Neue", sans-serif;
+    }
+    .premium-app {
+      position: relative;
+      isolation: isolate;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 8% 12%, rgba(37, 99, 235, 0.22), transparent 34rem),
+        radial-gradient(circle at 92% 88%, rgba(34, 211, 238, 0.13), transparent 38rem),
+        #07111f;
+    }
+    .premium-app::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0.035;
+      background-image:
+        linear-gradient(rgba(255,255,255,.7) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.7) 1px, transparent 1px);
+      background-size: 54px 54px;
+    }
+    .premium-app .text-blue-300 { color: #67e8f9 !important; }
+    .premium-app .text-blue-500,
+    .premium-app .text-blue-600 { color: #0891b2 !important; }
+    .premium-app .text-blue-700 { color: #0e7490 !important; }
+    .premium-app .text-blue-800 { color: #155e75 !important; }
+    .premium-app .bg-blue-50 { background-color: #ecfeff !important; }
+    .premium-app .bg-blue-100 { background-color: #cffafe !important; }
+    .premium-app .bg-blue-200 { background-color: #a5f3fc !important; }
+    .premium-app .bg-blue-500 { background-color: #06b6d4 !important; }
+    .premium-app .bg-blue-600 { background-color: #0891b2 !important; }
+    .premium-app .border-blue-100 { border-color: #cffafe !important; }
+    .premium-app .border-blue-200,
+    .premium-app .border-blue-300 { border-color: #a5f3fc !important; }
+    .premium-app .border-blue-500 { border-color: #06b6d4 !important; }
+    .premium-app .ring-blue-300 { --tw-ring-color: rgba(103, 232, 249, .72) !important; }
+    .premium-app .bg-indigo-100 { background-color: #e0f2fe !important; }
+    .premium-app .text-indigo-700 { color: #0369a1 !important; }
+    .premium-app .border-indigo-200 { border-color: #bae6fd !important; }
+    .premium-app .border-indigo-500 { border-color: #0ea5e9 !important; }
+    .premium-app .from-blue-500 {
+      --tw-gradient-from: #22d3ee var(--tw-gradient-from-position) !important;
+      --tw-gradient-to: rgb(34 211 238 / 0) var(--tw-gradient-to-position) !important;
+    }
+    .premium-app .from-blue-600 {
+      --tw-gradient-from: #06b6d4 var(--tw-gradient-from-position) !important;
+      --tw-gradient-to: rgb(6 182 212 / 0) var(--tw-gradient-to-position) !important;
+    }
+    .premium-app .to-indigo-500,
+    .premium-app .to-indigo-600 {
+      --tw-gradient-to: #3b82f6 var(--tw-gradient-to-position) !important;
+    }
+    .premium-app .hover\:bg-blue-50:hover { background-color: #ecfeff !important; }
+    .premium-app .hover\:bg-blue-700:hover { background-color: #0e7490 !important; }
+    .premium-app .hover\:border-blue-300:hover { border-color: #67e8f9 !important; }
   </style>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800">
@@ -1074,45 +1142,66 @@ ${commonEvalPrompt}
       };
 
       const renderSelect = () => (
-        <div className="fixed inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-800 flex justify-center items-center p-4">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl p-8 sm:p-10 max-w-md w-full text-center animate-fade-in relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-32 bg-blue-50 rounded-b-[50%] -z-10"></div>
-            
-            <div className="mx-auto flex items-center justify-center mb-8 mt-2">
-               <svg width="140" height="140" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-lg">
-                 <defs>
-                   <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                     <stop offset="0%" stopColor="#3B82F6"/>
-                     <stop offset="100%" stopColor="#8B5CF6"/>
-                   </linearGradient>
-                 </defs>
-                 <circle cx="100" cy="100" r="85" fill="#EFF6FF" />
-                 <circle cx="100" cy="100" r="65" fill="url(#grad1)" opacity="0.1" />
-                 <path d="M100 45 A 25 25 0 0 0 75 70 V 105 A 25 25 0 0 0 125 105 V 70 A 25 25 0 0 0 100 45 Z" fill="url(#grad1)" />
-                 <path d="M60 105 A 40 40 0 0 0 140 105" fill="none" stroke="#94A3B8" strokeWidth="8" strokeLinecap="round" />
-                 <rect x="96" y="145" width="8" height="20" fill="#94A3B8" rx="4" />
-                 <rect x="80" y="165" width="40" height="8" fill="#94A3B8" rx="4" />
-                 <circle cx="35" cy="80" r="8" fill="#FBBF24" />
-                 <circle cx="165" cy="70" r="6" fill="#F472B6" />
-                 <circle cx="150" cy="130" r="10" fill="#34D399" />
-                 <circle cx="45" cy="140" r="5" fill="#60A5FA" />
-                 <path d="M50 60 Q 40 70 50 80" fill="none" stroke="#60A5FA" strokeWidth="4" strokeLinecap="round" />
-                 <path d="M150 50 Q 165 65 150 80" fill="none" stroke="#F472B6" strokeWidth="4" strokeLinecap="round" />
-               </svg>
-            </div>
-            
-            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-10 tracking-tight">音読検定 ver.4.1.12</h1>
-            
-            <button type="button" onClick={startNewTry} className="w-full flex flex-col items-center justify-center bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-[1.5rem] p-5 mb-4 shadow-[0_8px_20px_rgba(59,130,246,0.3)] hover:shadow-[0_12px_25px_rgba(59,130,246,0.4)] active:scale-95 transition-all group">
-              <IconMic className="w-8 h-8 mb-1 group-hover:scale-110 transition-transform" />
-              <span className="text-xl font-bold tracking-wide">音読に挑戦する</span>
-            </button>
-            
-            <button type="button" onClick={() => setMode('historyList')} className="w-full flex items-center justify-center bg-gray-50 hover:bg-blue-50 text-gray-700 hover:text-blue-700 border-2 border-gray-100 hover:border-blue-200 rounded-[1.5rem] p-4 transition-all active:scale-95 group">
-              <IconHistory className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
-              <span className="font-bold">履歴を見る</span>
-            </button>
+        <div className="fixed inset-0 overflow-y-auto bg-[#07111f] text-white">
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute -top-40 -left-32 w-[34rem] h-[34rem] rounded-full bg-blue-600/25 blur-[110px]"></div>
+            <div className="absolute -bottom-52 -right-24 w-[38rem] h-[38rem] rounded-full bg-cyan-400/15 blur-[120px]"></div>
+            <div
+              className="absolute inset-0 opacity-[0.045]"
+              style={{
+                backgroundImage: 'linear-gradient(rgba(255,255,255,.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.7) 1px, transparent 1px)',
+                backgroundSize: '54px 54px'
+              }}
+            ></div>
           </div>
+
+          <header className="absolute z-10 top-0 left-0 right-0 px-6 py-6 sm:px-10 sm:py-8 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-[0.9rem] bg-gradient-to-br from-cyan-300 to-blue-500 shadow-[0_10px_30px_rgba(56,189,248,0.22)] flex items-center justify-center gap-[3px]">
+                <span className="block w-[3px] h-2.5 rounded-full bg-[#07111f]"></span>
+                <span className="block w-[3px] h-5 rounded-full bg-[#07111f]"></span>
+                <span className="block w-[3px] h-7 rounded-full bg-[#07111f]"></span>
+                <span className="block w-[3px] h-5 rounded-full bg-[#07111f]"></span>
+                <span className="block w-[3px] h-2.5 rounded-full bg-[#07111f]"></span>
+              </div>
+              <div className="ondoku-latin text-sm font-bold tracking-[0.18em] text-white">ONDOKU</div>
+            </div>
+            <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1.5 text-[11px] font-bold text-slate-400">ver.4.2.0</span>
+          </header>
+
+          <main className="relative min-h-full w-full px-5 py-24 sm:px-8 flex items-center justify-center">
+            <section className="w-full max-w-[28rem] animate-fade-in">
+              <div className="relative rounded-[2.25rem] border border-white/[0.11] bg-[#0c1929]/75 backdrop-blur-xl px-6 py-8 sm:px-9 sm:py-10 shadow-[0_36px_110px_rgba(0,0,0,.42)] overflow-hidden">
+                <div className="absolute -top-24 -right-24 w-52 h-52 rounded-full bg-cyan-300/[0.08] blur-3xl pointer-events-none"></div>
+                
+                <div className="relative text-center mb-10 pt-1">
+                  <h1
+                    className="ondoku-wordmark inline-flex items-baseline justify-center text-[2.85rem] sm:text-[3.3rem] leading-none tracking-[-0.035em]"
+                    style={{ textShadow: '0 14px 44px rgba(103, 232, 249, 0.13)' }}
+                    aria-label="音読検定"
+                  >
+                    <span className="text-[1.06em] pr-[0.07em] text-transparent bg-clip-text bg-gradient-to-br from-cyan-100 via-cyan-300 to-blue-400">音読</span>
+                    <span className="ml-3 text-[0.86em] tracking-[-0.015em] text-white">検定</span>
+                  </h1>
+                  <div className="mx-auto mt-6 h-px w-36 bg-gradient-to-r from-transparent via-cyan-300/90 to-transparent shadow-[0_0_12px_rgba(103,232,249,.28)]"></div>
+                </div>
+
+                <button type="button" onClick={startNewTry} className="relative isolate overflow-hidden cursor-pointer w-full rounded-2xl bg-gradient-to-r from-cyan-300 to-blue-400 text-[#07111f] px-6 py-6 flex items-center text-left ring-1 ring-cyan-100/10 shadow-[0_18px_44px_rgba(56,189,248,.24)] hover:-translate-y-1 hover:scale-[1.015] hover:brightness-110 hover:ring-2 hover:ring-cyan-100/70 hover:shadow-[0_28px_68px_rgba(56,189,248,.42)] active:translate-y-0 active:scale-[0.975] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-cyan-100/80 transition-all duration-200 group">
+                  <span className="absolute inset-y-[-40%] left-[-35%] w-[24%] rotate-[18deg] bg-white/35 blur-[1px] -translate-x-[240%] group-hover:translate-x-[720%] transition-transform duration-700 pointer-events-none"></span>
+                  <span className="relative z-10 flex-1">
+                    <span className="block text-2xl font-black tracking-tight">音読をはじめる</span>
+                    <span className="block text-sm font-bold text-slate-700/70 mt-1">LessonとPartを選択</span>
+                  </span>
+                  <span className="relative z-10 w-12 h-12 rounded-full bg-[#07111f]/10 flex items-center justify-center text-3xl font-light group-hover:translate-x-1 group-hover:bg-[#07111f]/20 group-hover:scale-105 transition-all">→</span>
+                </button>
+
+                <button type="button" onClick={() => setMode('historyList')} className="mt-3 w-full rounded-2xl border border-white/10 bg-white/[0.035] hover:bg-white/[0.07] text-slate-300 p-4 flex items-center justify-center transition-all active:scale-[0.985] group">
+                  <IconHistory className="w-5 h-5 mr-2 text-slate-400 group-hover:text-cyan-300 transition-colors" />
+                  <span className="font-bold">これまでの結果を見る</span>
+                </button>
+              </div>
+            </section>
+          </main>
         </div>
       );
 
@@ -1160,37 +1249,37 @@ ${commonEvalPrompt}
               if (streamRef.current) { streamRef.current.getTracks().forEach(track => track.stop()); streamRef.current = null; setMicReady(false); }
               if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
               resetToTop();
-            }} className="w-full text-gray-400 text-sm py-2 font-bold mt-2">トップに戻る</button>
+            }} className="w-full mt-2 py-3 px-4 rounded-xl border border-slate-200 bg-slate-100 text-slate-600 text-sm font-bold cursor-pointer hover:bg-cyan-50 hover:text-cyan-800 hover:border-cyan-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 transition-all">← トップに戻る</button>
           </div>
         </div>
       );
 
       const renderShuffling = () => (
-        <div className="flex flex-col p-6 bg-gradient-to-b from-indigo-900 to-purple-900 h-screen sm:h-[85vh] sm:rounded-[2.5rem] sm:shadow-2xl justify-center items-center animate-fade-in max-w-4xl mx-auto w-full relative overflow-hidden my-auto">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-500/20 via-transparent to-transparent animate-pulse"></div>
+        <div className="flex flex-col p-6 bg-gradient-to-br from-[#07111f] via-[#0b2034] to-[#073b4c] h-screen sm:h-[85vh] sm:rounded-[2.5rem] sm:shadow-2xl justify-center items-center animate-fade-in max-w-4xl mx-auto w-full relative overflow-hidden my-auto border border-cyan-200/10">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-cyan-300/20 via-transparent to-transparent animate-pulse"></div>
 
           <h2 className="text-white text-2xl sm:text-3xl font-extrabold mb-12 sm:mb-16 animate-bounce flex items-center gap-3 z-10 drop-shadow-md">
-            <IconSparkles className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-400" />
+            <IconSparkles className="w-8 h-8 sm:w-10 sm:h-10 text-cyan-300" />
             どのパートが出題されるかな...!?
           </h2>
 
           <div className="flex justify-center items-center gap-4 sm:gap-8 w-full z-10">
             {[1, 2, 3].map(part => {
               const isSelected = selectedPart === part;
-              const finalEffect = (isRouletteFinal && isSelected) ? "shine-effect shadow-[0_0_50px_rgba(250,204,21,1)]" : "";
+              const finalEffect = (isRouletteFinal && isSelected) ? "shine-effect shadow-[0_0_55px_rgba(103,232,249,0.95)]" : "";
               
               return (
                 <div 
                   key={part}
                   className={`transition-all duration-[50ms] ease-out flex flex-col justify-center items-center rounded-2xl sm:rounded-3xl border-4 relative overflow-hidden 
                     ${isSelected 
-                      ? `w-28 h-40 sm:w-48 sm:h-64 bg-gradient-to-br from-yellow-300 to-yellow-500 border-white shadow-[0_0_30px_rgba(250,204,21,0.8)] scale-110 z-20 ${finalEffect}` 
-                      : 'w-20 h-32 sm:w-32 sm:h-48 bg-indigo-800/80 border-indigo-500 opacity-50 scale-90'}`}
+                      ? `w-28 h-40 sm:w-48 sm:h-64 bg-gradient-to-br from-cyan-300 to-blue-500 border-cyan-100 shadow-[0_0_34px_rgba(34,211,238,0.72)] scale-110 z-20 ${finalEffect}` 
+                      : 'w-20 h-32 sm:w-32 sm:h-48 bg-slate-800/80 border-cyan-900/70 opacity-50 scale-90'}`}
                 >
-                  <span className={`font-bold transition-colors ${isSelected ? 'text-indigo-900 text-lg sm:text-2xl mb-1 sm:mb-2' : 'text-indigo-300 text-xs sm:text-lg'}`}>
+                  <span className={`font-bold transition-colors ${isSelected ? 'text-[#07111f] text-lg sm:text-2xl mb-1 sm:mb-2' : 'text-cyan-300/70 text-xs sm:text-lg'}`}>
                     Lesson {userInfo.lesson}
                   </span>
-                  <span className={`font-black transition-colors ${isSelected ? 'text-white text-5xl sm:text-7xl drop-shadow-md' : 'text-indigo-400 text-3xl sm:text-5xl'}`}>
+                  <span className={`font-black transition-colors ${isSelected ? 'text-white text-5xl sm:text-7xl drop-shadow-md' : 'text-cyan-300/50 text-3xl sm:text-5xl'}`}>
                     P{part}
                   </span>
                 </div>
@@ -1198,7 +1287,7 @@ ${commonEvalPrompt}
             })}
           </div>
           
-          <div className={`mt-16 sm:mt-20 font-bold text-lg sm:text-xl z-10 transition-colors ${isRouletteFinal ? 'text-yellow-400 animate-bounce' : 'text-indigo-200 animate-pulse'}`}>
+          <div className={`mt-16 sm:mt-20 font-bold text-lg sm:text-xl z-10 transition-colors ${isRouletteFinal ? 'text-cyan-300 animate-bounce' : 'text-slate-300 animate-pulse'}`}>
             {isRouletteFinal ? '決定！！' : 'ルーレット回転中...'}
           </div>
         </div>
@@ -1461,15 +1550,19 @@ ${commonEvalPrompt}
       return (
         <React.Fragment>
           {mode === 'select' && renderSelect()}
-          {mode === 'flow' && step === 'userInfo' && renderUserInfo()}
-          {mode === 'flow' && step === 'shuffling' && renderShuffling()}
-          {mode === 'flow' && step === 'recording' && renderRecording()}
-          {mode === 'flow' && step === 'waiting' && renderWaiting()}
-          {mode === 'flow' && step === 'scoring' && renderScoring()}
-          {(mode === 'flow' && step === 'result') && renderResult()}
-          
-          {mode === 'historyList' && renderHistoryList()}
-          {mode === 'historyDetail' && renderResult()}
+          {mode !== 'select' && (
+            <div className="premium-app w-full min-h-screen flex items-center justify-center p-0 sm:p-6">
+              {mode === 'flow' && step === 'userInfo' && renderUserInfo()}
+              {mode === 'flow' && step === 'shuffling' && renderShuffling()}
+              {mode === 'flow' && step === 'recording' && renderRecording()}
+              {mode === 'flow' && step === 'waiting' && renderWaiting()}
+              {mode === 'flow' && step === 'scoring' && renderScoring()}
+              {(mode === 'flow' && step === 'result') && renderResult()}
+              
+              {mode === 'historyList' && renderHistoryList()}
+              {mode === 'historyDetail' && renderResult()}
+            </div>
+          )}
 
           {renderExportTemplate()}
         </React.Fragment>
