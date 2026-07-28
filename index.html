@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>音読検定 ver.3.4</title>
+  <title>音読検定 ver.4</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -313,22 +313,60 @@
           
           const referenceText = LESSON_TEXT_DATA[`L${userInfo.lesson}-${selectedPart}`];
 
-const commonEvalPrompt = `【1. 評価ポリシー：高校生向け実戦採点方式】
-あなたは厳格さと温かさを兼ね備えた英語教師です。採点単位は必ず【0.5点刻み】で行ってください。
+const commonEvalPrompt = `【1. 最優先の評価手順】
+1. 録音が採点できる品質か確認する。
+2. 正しい英文のうち、実際に読もうとした範囲を attempted_coverage（0〜100）で判定する。
+3. 読もうとした語のうち、聞き手が単語として識別できる割合を intelligibility_ratio（0〜100）で判定する。
+4. 発音・抑揚・つながりを、それぞれ独立して0.5点刻みで評価する。
 
-■ 採点の基準
-・標準的な「詰まらずに読めた高校生」の合計点を【8.5点】とします。
-・10.0点（満点）は「ネイティブレベル」でなくても、高校生として非常に優秀なレベルであれば、満点にしてよいです。
-・「カタカナ発音」が目立つ場合は、発音項目から0.5〜1.0点の減点を行ってください。
-・非常に細かなミス（冠詞のわずかな抜け等）は減点しなくて構いません。
-★重要：テキストの一部を読み飛ばした（未読・スキップ）り、時間切れで最後まで読めなかった場合は、未読の単語数に応じて「発音」および「つながり」から必ず0.5点以上減点してください。
-★特別ルール：「mitate」など、英文に含まれる日本語由来の単語（固有名詞やローマ字表記）については、日本語風の発音であっても正解とし、発音の減点対象としないでください。
+★ attempted_coverage と intelligibility_ratio を混同しないこと。
+・発音が大きく崩れて理解不能でも、本人がその箇所を読もうとしていれば attempted_coverage に含める。
+・無音、完全な読み飛ばし、または途中終了後の未読部分だけを未読とする。
+・発音が不明瞭な語を「未読・スキップ」にしてはならない。
 
-■ 各項目の配分 (合計10点)
-各項目は0.5点刻みで評価する。
-・発音 (4.0点満点): 標準的な高校生は 3.5点。カタカナ英語は 2.5〜3.0点。未読・スキップがある場合は減点。
-・抑揚 (3.0点満点): 標準的な高校生は 2.5点。
-・つながり (3.0点満点): 標準的な高校生は 2.5点。詰まりが多ければ減点。途中終了やスキップがあれば減点。`;
+【2. 録音品質】
+・通常採点できる場合: audio_quality="good", grading_status="scored"
+・一部が小音量・雑音で不確かな場合: audio_quality="limited", grading_status="scored_with_caution"
+・音読の大部分を信頼して判定できない場合: audio_quality="ungradable", grading_status="ungradable"
+・limited または ungradable の場合は、quality_messageに日本語で理由を書く。
+・録音品質の問題を、生徒の発音ミスと断定しない。
+
+【3. 公平な評価方針】
+・日本語アクセントが残ること自体は減点しない。単語の識別を妨げる発音だけを減点する。
+・ネイティブらしさを要求しない。高校生として明瞭で安定した音読なら9点・10点を積極的に認める。
+・最初から標準点を決めず、音声中の具体的な事実だけで評価する。
+・軽微な問題が1〜2か所だけなら、満点から過度に減点しない。
+・mitateなど日本語由来の語や日本の固有名詞は、日本語風の発音でも減点しない。
+
+【4. 表示する3項目】
+発音（0〜4点）:
+4.0 = 全文を通して明瞭。実質的な誤発音なし、または軽微な問題が1〜2か所だけ。
+3.5 = おおむね明瞭で、聞き取りを妨げる問題が少数。
+3.0 = 複数の問題があるが、全体として理解できる。
+2.0〜2.5 = 誤発音が目立ち、部分的に理解しにくい。
+0.5〜1.5 = 多くの語を識別しにくい。
+
+抑揚（0〜3点）:
+3.0 = 意味のまとまり、文末、疑問文等が自然で表現力がある。
+2.5 = おおむね自然で、平板な箇所が少数。
+2.0 = 平板さはあるが、文の区切りは概ね伝わる。
+1.0〜1.5 = 単語ごとの読みになり、意味のまとまりが伝わりにくい。
+0.5 = ほぼ抑揚を確認できない。
+
+つながり（0〜3点）:
+3.0 = 不自然な停止や言い直しがほぼなく、安定して流暢。
+2.5 = 軽微な停止・言い直しが少数。
+2.0 = 停止や言い直しが複数あるが、流れを保っている。
+1.0〜1.5 = 頻繁に停止し、単語単位の読みが目立つ。
+0.5 = 継続して読むことが難しい。
+
+【5. 読了率による総合点上限】
+・attempted_coverageが90%以上: 上限10点
+・75%以上90%未満: 上限8点
+・50%以上75%未満: 上限6点
+・25%以上50%未満: 上限4点
+・25%未満: 上限2点
+上限の最終適用はGAS側で行うため、attempted_coverageを正確に返すこと。`;
 
           const prompt = `以下の【正しい英文】を生徒が音読した音声を評価しJSONで出力せよ。採点単位は0.5点刻みとすること。
 ★重要：生徒へのフィードバックコメント（pronunciation_feedback, intonation_feedback, fluency_feedback, general_comment）は、必ず【日本語】で記述すること。
@@ -339,13 +377,19 @@ ${referenceText}
 
 ${commonEvalPrompt}
 
-【2. ハイライト用テキスト作成 (highlighted_text) ルール】
+【6. ハイライト用テキスト作成 (highlighted_text) ルール】
 ・「難しい単語（3音節以上、または綴りと発音が乖離している単語）」を上手に読めた場合のみ、その1単語を <excellent>単語</excellent> で囲む。
 ・読み間違えた単語は <bad>単語</bad> で囲む。
-★重要：読み飛ばした単語（未読・スキップ）、および時間切れで読めなかった後半の単語は、すべて漏れなく <skipped>単語</skipped> で囲むこと。
+★重要：完全に読み飛ばした単語、および途中終了後の未読部分だけを <skipped>単語</skipped> で囲むこと。
+★発音が理解不能でも、本人が読もうとして声を出している語は <skipped> にせず <bad> にすること。
 ・普通の単語はタグをつけないこと。
 ★特別ルール：「mitate」という単語が含まれている場合、それは日本語由来の言葉であるため発音評価の対象外（減点なし）とし、<bad>などのタグはつけずに普通の単語として扱ってください。
-★元の英文の改行や段落インデント（全角スペース）は維持して出力すること。`;
+★元の英文の改行や段落インデント（全角スペース）は維持して出力すること。
+
+【7. コメント】
+・general_commentには、良かった点と次に意識する点を簡潔に書く。
+・実際の未読がある場合だけ、読了状況について書く。
+・発音が理解不能であることを「読んでいない」「未読」と表現しない。`;
 
           let resultData = null;
           const delays = [1000, 2000, 4000];
@@ -355,7 +399,11 @@ ${commonEvalPrompt}
               const response = await fetch(GAS_WEB_APP_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ base64Audio, prompt })
+                body: JSON.stringify({
+                  base64Audio,
+                  audioMimeType: audioBlob.type || 'audio/webm',
+                  prompt
+                })
               });
               
               if (!response.ok) throw new Error("通信エラー: HTTPステータス " + response.status);
@@ -374,7 +422,10 @@ ${commonEvalPrompt}
             }
           }
 
-          const totalScoreNum = parseFloat((resultData.pronunciation_score + resultData.intonation_score + resultData.fluency_score).toFixed(1));
+          const isUngradable = resultData.grading_status === 'ungradable';
+          const totalScoreNum = isUngradable
+            ? null
+            : parseFloat((resultData.pronunciation_score + resultData.intonation_score + resultData.fluency_score).toFixed(1));
 
           const newResult = {
             ...resultData,
@@ -400,7 +451,10 @@ ${commonEvalPrompt}
         }
       };
 
-      const getEvaluation = (totalScoreNum) => {
+      const getEvaluation = (totalScoreNum, gradingStatus) => {
+        if (gradingStatus === 'ungradable' || !Number.isFinite(totalScoreNum)) {
+          return { text: "採点困難", color: "text-amber-600" };
+        }
         if (totalScoreNum >= 10) return { text: "Perfect!", color: "text-yellow-500" };
         if (totalScoreNum >= 9) return { text: "Excellent!", color: "text-blue-500" };
         if (totalScoreNum >= 8) return { text: "Very Good!", color: "text-green-500" };
@@ -705,7 +759,11 @@ ${commonEvalPrompt}
         const data = scoreResult;
         const displayLesson = data.lesson || userInfo.lesson;
         const displayPart = data.part || selectedPart;
-        const { text: evalText, color: evalColor } = getEvaluation(parseFloat(data.total || 0));
+        const isUngradable = data.grading_status === 'ungradable' || data.total == null;
+        const { text: evalText, color: evalColor } = getEvaluation(
+          isUngradable ? NaN : Number(data.total),
+          data.grading_status
+        );
 
         return (
           <div 
@@ -752,17 +810,23 @@ ${commonEvalPrompt}
                 <div className="flex items-center justify-between bg-white p-4 rounded-3xl border-2 border-gray-100">
                   <div className={`text-4xl font-black italic transform -rotate-6 ${evalColor}`}>{evalText}</div>
                   <div className="text-right">
-                    <span className="text-6xl font-black text-blue-600">{data.total || 0}</span>
+                    <span className="text-6xl font-black text-blue-600">{isUngradable ? '—' : data.total}</span>
                     <span className="text-2xl text-gray-400 font-bold"> / 10</span>
                   </div>
                 </div>
+
+                {data.quality_message && (
+                  <div className={`${isUngradable ? 'bg-amber-100 border-amber-300 text-amber-900' : 'bg-yellow-50 border-yellow-200 text-yellow-900'} px-4 py-2 rounded-2xl border text-[11px] font-bold leading-snug`}>
+                    {data.quality_message}
+                  </div>
+                )}
 
                 <div className="flex flex-col gap-2">
                   {[{ l: '発音', s: data.pronunciation_score, m: 4, f: data.pronunciation_feedback }, { l: '抑揚', s: data.intonation_score, m: 3, f: data.intonation_feedback }, { l: 'つながり', s: data.fluency_score, m: 3, f: data.fluency_feedback }].map((item, idx) => (
                     <div key={idx} className="bg-gray-50 px-4 py-3 rounded-2xl border border-gray-200 flex items-center gap-4">
                       <div className="w-16 flex flex-col items-center flex-shrink-0">
                         <span className="font-bold text-gray-500 text-[10px] mb-0.5">{item.l}</span>
-                        <span className="font-black text-blue-600 text-2xl">{item.s} <span className="text-[10px] text-gray-400 font-normal">/{item.m}</span></span>
+                        <span className="font-black text-blue-600 text-2xl">{isUngradable ? '—' : item.s} <span className="text-[10px] text-gray-400 font-normal">/{item.m}</span></span>
                       </div>
                       <div className="text-[12px] text-gray-700 whitespace-pre-wrap flex-1 leading-snug font-medium">{item.f}</div>
                     </div>
@@ -808,7 +872,7 @@ ${commonEvalPrompt}
                </svg>
             </div>
             
-            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-10 tracking-tight">音読検定 ver.3.3</h1>
+            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-10 tracking-tight">音読検定 ver.4</h1>
             
             <button type="button" onClick={startNewTry} className="w-full flex flex-col items-center justify-center bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-[1.5rem] p-5 mb-4 shadow-[0_8px_20px_rgba(59,130,246,0.3)] hover:shadow-[0_12px_25px_rgba(59,130,246,0.4)] active:scale-95 transition-all group">
               <IconMic className="w-8 h-8 mb-1 group-hover:scale-110 transition-transform" />
@@ -1021,7 +1085,8 @@ ${commonEvalPrompt}
                      <div className="font-bold text-gray-800">Lesson {item.lesson} - Part {item.part}</div>
                    </div>
                    <div className="text-2xl font-black text-blue-600">
-                     {item.total} <span className="text-sm font-normal text-gray-400">/10</span>
+                     {item.total == null ? '採点困難' : item.total}
+                     {item.total != null && <span className="text-sm font-normal text-gray-400"> /10</span>}
                    </div>
                 </div>
               ))
@@ -1040,7 +1105,11 @@ ${commonEvalPrompt}
         const isHistoryView = mode === 'historyDetail';
         let displayLesson = data.lesson || userInfo.lesson;
         let displayPart = data.part || selectedPart;
-        const { text: evalText, color: evalColor } = getEvaluation(parseFloat(data.total || 0));
+        const isUngradable = data.grading_status === 'ungradable' || data.total == null;
+        const { text: evalText, color: evalColor } = getEvaluation(
+          isUngradable ? NaN : Number(data.total),
+          data.grading_status
+        );
 
         return (
           <div className="flex flex-col p-4 sm:p-8 animate-fade-in bg-white min-h-screen sm:min-h-[85vh] sm:rounded-[2.5rem] sm:shadow-2xl max-w-4xl mx-auto w-full my-auto relative">
@@ -1079,11 +1148,20 @@ ${commonEvalPrompt}
                 <div className="flex items-center gap-3 sm:gap-6">
                   <div className={`text-2xl sm:text-4xl font-black italic transform -rotate-6 ${evalColor} drop-shadow-md`}>{evalText}</div>
                   <div className="text-right">
-                    <span className="text-5xl sm:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">{data.total || 0}</span>
+                    <span className="text-5xl sm:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">{isUngradable ? '—' : data.total}</span>
                     <span className="text-xl sm:text-3xl text-gray-400 font-bold"> / 10</span>
                   </div>
                 </div>
               </div>
+
+              {data.quality_message && (
+                <div className={`${isUngradable ? 'bg-amber-100 border-amber-300 text-amber-900' : 'bg-yellow-50 border-yellow-200 text-yellow-900'} p-4 rounded-2xl border mb-5 font-sans`}>
+                  <div className="font-bold text-sm mb-1">
+                    {isUngradable ? '録音状態のため採点できませんでした' : '録音状態について'}
+                  </div>
+                  <p className="text-sm leading-relaxed">{data.quality_message}</p>
+                </div>
+              )}
 
               {data.highlighted_text && (
                 <div className="bg-white p-4 sm:p-6 rounded-3xl border border-gray-200 mb-5 shadow-sm">
@@ -1107,7 +1185,7 @@ ${commonEvalPrompt}
                   <div key={idx} className="bg-gray-50 p-4 rounded-2xl border border-gray-200 flex flex-col shadow-sm">
                     <div className="flex justify-between items-center mb-2 border-b border-gray-200 pb-2">
                       <span className="font-bold text-gray-700">{item.l}</span>
-                      <span className="font-black text-blue-600 text-xl">{item.s} <span className="text-sm text-gray-400 font-normal">/{item.m}</span></span>
+                      <span className="font-black text-blue-600 text-xl">{isUngradable ? '—' : item.s} <span className="text-sm text-gray-400 font-normal">/{item.m}</span></span>
                     </div>
                     <div className="text-xs sm:text-sm text-gray-600 whitespace-pre-wrap flex-1 leading-relaxed font-medium">{item.f}</div>
                   </div>
