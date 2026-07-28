@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>音読検定 ver.4.1.5</title>
+  <title>音読検定 ver.4.1.6</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -516,6 +516,33 @@ ${commonEvalPrompt}
         return new Blob([bufferArray], {type: "audio/wav"});
       };
 
+      // iPad版html2canvasでは、色付き背景の上にある白文字の
+      // ベースラインが下へずれることがある。対象文字だけは
+      // キャプチャ後のCanvasへ直接中央描画して位置を固定する。
+      const drawExportCanvasText = (canvas, target) => {
+        const context = canvas.getContext('2d');
+        const targetRect = target.getBoundingClientRect();
+        const scaleX = canvas.width / targetRect.width;
+        const scaleY = canvas.height / targetRect.height;
+        const textElements = target.querySelectorAll('[data-export-canvas-text]');
+
+        textElements.forEach(element => {
+          const rect = element.getBoundingClientRect();
+          const style = window.getComputedStyle(element);
+          const fontSize = parseFloat(style.fontSize) * scaleY;
+          const centerX = (rect.left - targetRect.left + rect.width / 2) * scaleX;
+          const centerY = (rect.top - targetRect.top + rect.height / 2) * scaleY;
+
+          context.save();
+          context.fillStyle = element.dataset.exportCanvasColor || '#ffffff';
+          context.textAlign = 'center';
+          context.textBaseline = 'middle';
+          context.font = `${style.fontStyle} ${style.fontWeight} ${fontSize}px ${style.fontFamily}`;
+          context.fillText(element.textContent.trim(), centerX, centerY);
+          context.restore();
+        });
+      };
+
       const exportVideo = async () => {
         if (!exportContainerRef.current || !audioBlob) return;
 
@@ -572,8 +599,19 @@ ${commonEvalPrompt}
             width: 960,
             height: 540,
             windowWidth: 960,
-            windowHeight: 540
+            windowHeight: 540,
+            onclone: clonedDocument => {
+              clonedDocument.querySelectorAll('[data-export-canvas-text]').forEach(element => {
+                element.style.setProperty('color', 'transparent', 'important');
+                element.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+                element.querySelectorAll('*').forEach(child => {
+                  child.style.setProperty('color', 'transparent', 'important');
+                  child.style.setProperty('-webkit-text-fill-color', 'transparent', 'important');
+                });
+              });
+            }
           });
+          drawExportCanvasText(canvas, target);
 
           // 4. 静止画なので1fpsで動画化
           videoStream = canvas.captureStream(1);
@@ -855,6 +893,8 @@ ${commonEvalPrompt}
             return (
               <span
                 key={index}
+                data-export-canvas-text
+                data-export-canvas-color="#ffffff"
                 style={{
                   display: 'inline-block',
                   backgroundColor: '#2563EB',
@@ -884,6 +924,8 @@ ${commonEvalPrompt}
             return (
               <span
                 key={index}
+                data-export-canvas-text
+                data-export-canvas-color="#ffffff"
                 style={{
                   display: 'inline-block',
                   backgroundColor: '#F97316',
@@ -952,12 +994,16 @@ ${commonEvalPrompt}
             <div className="flex justify-between items-center border-b-2 border-gray-100 pb-3 mb-4">
               <div className="flex items-center gap-3">
                  <div
+                   data-export-canvas-text
+                   data-export-canvas-color="#ffffff"
                    className="bg-blue-500 text-white font-black text-2xl px-5 rounded-xl text-center"
                    style={{ height: '44px', lineHeight: '44px' }}
                  >
                    Lesson {displayLesson}
                  </div>
                  <div
+                   data-export-canvas-text
+                   data-export-canvas-color="#1D4ED8"
                    className="bg-blue-100 text-blue-700 font-bold text-xl px-4 rounded-xl border border-blue-200 text-center"
                    style={{ height: '36px', lineHeight: '36px' }}
                  >
@@ -1059,7 +1105,7 @@ ${commonEvalPrompt}
                </svg>
             </div>
             
-            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-10 tracking-tight">音読検定 ver.4.1.5</h1>
+            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-10 tracking-tight">音読検定 ver.4.1.6</h1>
             
             <button type="button" onClick={startNewTry} className="w-full flex flex-col items-center justify-center bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-[1.5rem] p-5 mb-4 shadow-[0_8px_20px_rgba(59,130,246,0.3)] hover:shadow-[0_12px_25px_rgba(59,130,246,0.4)] active:scale-95 transition-all group">
               <IconMic className="w-8 h-8 mb-1 group-hover:scale-110 transition-transform" />
