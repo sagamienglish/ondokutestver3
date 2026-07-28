@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>音読検定 ver.4.1.8</title>
+  <title>音読検定 ver.4.1.9</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -544,9 +544,14 @@ ${commonEvalPrompt}
           context.save();
           context.fillStyle = element.dataset.exportCanvasColor || '#ffffff';
           context.textAlign = 'center';
-          context.textBaseline = 'middle';
+          context.textBaseline = 'alphabetic';
           context.font = `${style.fontStyle} ${style.fontWeight} ${fontSize}px ${style.fontFamily}`;
-          context.fillText(element.textContent.trim(), centerX, centerY);
+          const text = element.textContent.trim();
+          const metrics = context.measureText(text);
+          const ascent = metrics.actualBoundingBoxAscent || fontSize * 0.75;
+          const descent = metrics.actualBoundingBoxDescent || fontSize * 0.2;
+          const visualBaselineY = centerY + (ascent - descent) / 2;
+          context.fillText(text, centerX, visualBaselineY);
           context.restore();
         });
 
@@ -908,7 +913,6 @@ ${commonEvalPrompt}
                 key={index}
                 data-export-canvas-text
                 data-export-canvas-color="#ffffff"
-                data-export-canvas-y-offset="2.5"
                 style={{
                   display: 'inline-block',
                   backgroundColor: '#2563EB',
@@ -940,7 +944,6 @@ ${commonEvalPrompt}
                 key={index}
                 data-export-canvas-text
                 data-export-canvas-color="#ffffff"
-                data-export-canvas-y-offset="2.5"
                 style={{
                   display: 'inline-block',
                   backgroundColor: '#F97316',
@@ -980,6 +983,11 @@ ${commonEvalPrompt}
         const displayLesson = data.lesson || userInfo.lesson;
         const displayPart = data.part || selectedPart;
         const isUngradable = data.grading_status === 'ungradable' || data.total == null;
+        const recordingStatusText = isUngradable
+          ? '採点困難'
+          : data.grading_status === 'limited'
+            ? '注意'
+            : 'クリア';
         const { text: evalText, color: evalColor } = getEvaluation(
           isUngradable ? NaN : Number(data.total),
           data.grading_status
@@ -1031,6 +1039,7 @@ ${commonEvalPrompt}
                    <span>{userInfo.name} さん</span>
                  </div>
                  {data.date && <div className="text-gray-400 text-[10px]">{new Date(data.date).toLocaleString('ja-JP')}</div>}
+                 <div className="text-gray-400 text-[9px] mt-0.5">録音：{recordingStatusText}</div>
               </div>
             </div>
 
@@ -1062,12 +1071,6 @@ ${commonEvalPrompt}
                     <span className="text-xl text-gray-400 font-bold"> / 10</span>
                   </div>
                 </div>
-
-                {data.quality_message && (
-                  <div className={`${isUngradable ? 'bg-amber-100 border-amber-300 text-amber-900' : 'bg-yellow-50 border-yellow-200 text-yellow-900'} px-3 py-1.5 rounded-xl border text-[9px] font-bold leading-snug`}>
-                    {data.quality_message}
-                  </div>
-                )}
 
                 <div className="flex flex-col gap-1.5">
                   {[{ l: '発音', s: data.pronunciation_score, m: 4, f: data.pronunciation_feedback }, { l: '抑揚', s: data.intonation_score, m: 3, f: data.intonation_feedback }, { l: 'つながり', s: data.fluency_score, m: 3, f: data.fluency_feedback }].map((item, idx) => (
@@ -1120,7 +1123,7 @@ ${commonEvalPrompt}
                </svg>
             </div>
             
-            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-10 tracking-tight">音読検定 ver.4.1.8</h1>
+            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 mb-10 tracking-tight">音読検定 ver.4.1.9</h1>
             
             <button type="button" onClick={startNewTry} className="w-full flex flex-col items-center justify-center bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-[1.5rem] p-5 mb-4 shadow-[0_8px_20px_rgba(59,130,246,0.3)] hover:shadow-[0_12px_25px_rgba(59,130,246,0.4)] active:scale-95 transition-all group">
               <IconMic className="w-8 h-8 mb-1 group-hover:scale-110 transition-transform" />
@@ -1354,6 +1357,11 @@ ${commonEvalPrompt}
         let displayLesson = data.lesson || userInfo.lesson;
         let displayPart = data.part || selectedPart;
         const isUngradable = data.grading_status === 'ungradable' || data.total == null;
+        const recordingStatusText = isUngradable
+          ? '採点困難'
+          : data.grading_status === 'limited'
+            ? '注意'
+            : 'クリア';
         const { text: evalText, color: evalColor } = getEvaluation(
           isUngradable ? NaN : Number(data.total),
           data.grading_status
@@ -1395,7 +1403,10 @@ ${commonEvalPrompt}
 
               <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100 font-sans">
                 <div className="flex flex-col gap-1.5">
-                   <span className="text-xs font-bold text-blue-500 tracking-wider">採点結果</span>
+                   <div className="flex items-center gap-2">
+                     <span className="text-xs font-bold text-blue-500 tracking-wider">採点結果</span>
+                     <span className="text-[10px] sm:text-xs font-medium text-gray-400">録音：{recordingStatusText}</span>
+                   </div>
                    <div className="flex items-center gap-2">
                      <div className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-black text-xl sm:text-3xl px-4 py-1.5 rounded-xl shadow-md inline-block">
                        Lesson {displayLesson}
@@ -1413,15 +1424,6 @@ ${commonEvalPrompt}
                   </div>
                 </div>
               </div>
-
-              {data.quality_message && (
-                <div className={`${isUngradable ? 'bg-amber-100 border-amber-300 text-amber-900' : 'bg-yellow-50 border-yellow-200 text-yellow-900'} p-4 rounded-2xl border mb-5 font-sans`}>
-                  <div className="font-bold text-sm mb-1">
-                    {isUngradable ? '録音状態のため採点できませんでした' : '録音状態について'}
-                  </div>
-                  <p className="text-sm leading-relaxed">{data.quality_message}</p>
-                </div>
-              )}
 
               {data.highlighted_text && (
                 <div className="bg-white p-4 sm:p-6 rounded-3xl border border-gray-200 mb-5 shadow-sm">
