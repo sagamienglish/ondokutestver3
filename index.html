@@ -212,6 +212,9 @@
       const [timeLimit, setTimeLimit] = useState(30);
       const [timeRemaining, setTimeRemaining] = useState(30);
       const [isRecording, setIsRecording] = useState(false);
+      const [isCheckingRecording, setIsCheckingRecording] = useState(false);
+      const [recordingCountdown, setRecordingCountdown] = useState(3);
+      const [recordingError, setRecordingError] = useState(null);
       const [audioBlob, setAudioBlob] = useState(null);
       const [audioUrl, setAudioUrl] = useState(null);
       const [scoringError, setScoringError] = useState(null);
@@ -322,24 +325,68 @@
       };
 
       const startRecording = async () => {
+        setIsCheckingRecording(true);
+        setRecordingCountdown(3);
+        setRecordingError(null);
         setScoringError(null);
         setTimeRemaining(timeLimit); setAudioBlob(null); setAudioUrl(null);
+        let stream;
+        let recorder;
+        let checkTimeout;
+        let countdownInterval;
+        let ready = false;
+        const cleanup = () => {
+          clearTimeout(checkTimeout);
+          clearInterval(countdownInterval);
+          cancelAnimationFrame(animationFrameRef.current);
+          stream?.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+          mediaRecorderRef.current = null;
+          setIsCheckingRecording(false);
+          setIsRecording(false);
+          setMicLevel(0);
+        };
+        const fail = () => {
+          if (recorder) {
+            recorder.onstop = null;
+            recorder.ondataavailable = null;
+            recorder.onerror = null;
+            if (recorder.state !== 'inactive') recorder.stop();
+          }
+          cleanup();
+          setRecordingError("録音データを取得できませんでした。マイクの接続と許可を確認して、もう一度お試しください。");
+        };
         try {
-          const stream = streamRef.current || await navigator.mediaDevices.getUserMedia({ audio: true });
+          stream = streamRef.current || await navigator.mediaDevices.getUserMedia({ audio: true });
           if (!streamRef.current) { streamRef.current = stream; startVisualizer(stream); }
-          mediaRecorderRef.current = new MediaRecorder(stream);
+          recorder = new MediaRecorder(stream);
+          mediaRecorderRef.current = recorder;
           audioChunksRef.current = [];
-          mediaRecorderRef.current.ondataavailable = (event) => { if (event.data.size > 0) audioChunksRef.current.push(event.data); };
-          mediaRecorderRef.current.onstop = () => {
-            if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-            const blob = new Blob(audioChunksRef.current, { type: mediaRecorderRef.current.mimeType || 'audio/webm' });
-            setAudioBlob(blob); setAudioUrl(URL.createObjectURL(blob));
-            stream.getTracks().forEach(track => track.stop()); streamRef.current = null;
+          recorder.ondataavailable = (event) => {
+            if (!event.data.size) return;
+            audioChunksRef.current.push(event.data);
+            if (ready || recorder.state !== 'recording') return;
+            ready = true;
           };
-          mediaRecorderRef.current.start();
-          setIsRecording(true);
+          recorder.onerror = fail;
+          recorder.onstop = () => {
+            if (!ready) { fail(); return; }
+            const blob = new Blob(audioChunksRef.current, { type: audioChunksRef.current[0].type || recorder.mimeType });
+            cleanup();
+            setAudioBlob(blob); setAudioUrl(URL.createObjectURL(blob));
+          };
+          recorder.start(500);
+          countdownInterval = setInterval(() => {
+            setRecordingCountdown(value => Math.max(1, value - 1));
+          }, 1000);
+          checkTimeout = setTimeout(() => {
+            clearInterval(countdownInterval);
+            if (!ready || recorder.state !== 'recording') { fail(); return; }
+            setIsCheckingRecording(false);
+            setIsRecording(true);
+          }, 3000);
         } catch (e) {
-          alert("マイクエラーが発生しました。");
+          fail();
         }
       };
 
@@ -1316,7 +1363,7 @@ ${commonEvalPrompt}
            <div className="flex-1 flex gap-3 sm:gap-4 min-h-0">
              <div className="flex-1 bg-gray-50 border rounded-2xl overflow-y-auto relative p-5 sm:p-8 shadow-inner text-gray-900 text-xl sm:text-2xl leading-[2.2] font-serif tracking-wide whitespace-pre-wrap">
                {LESSON_TEXT_DATA[`L${userInfo.lesson}-${selectedPart}`]}
-               {isRecording && <div className="fixed sm:absolute top-5 right-5 sm:top-4 sm:right-4 bg-red-500 text-white text-sm font-bold px-4 py-1.5 rounded-full animate-pulse shadow-md flex items-center gap-2 z-10 font-sans"><span className="w-2.5 h-2.5 bg-white rounded-full"></span>録音中</div>}
+               {isRecording && <div className="fixed sm:absolute top-5 right-5 sm:top-4 sm:right-4 bg-red-500 text-white text-sm font-bold px-4 py-1.5 rounded-full animate-pulse shadow-md flex items-center gap-2 z-10 font-sans"><span className="w-2.5 h-2.5 bg-white rounded-full"></span>録音中・読み始めてください</div>}
              </div>
 
              <div className="w-14 sm:w-20 bg-white border border-gray-200 rounded-2xl flex flex-col items-center py-4 shadow-sm">
@@ -1331,14 +1378,15 @@ ${commonEvalPrompt}
              </div>
            </div>
 
+           {recordingError && <p role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{recordingError}</p>}
            {!audioUrl ? (
              !isRecording ? (
-               <button type="button" onClick={startRecording} className="w-full py-4 sm:py-5 bg-red-500 text-white rounded-2xl font-bold text-xl shadow-[0_8px_20px_rgba(239,68,68,0.3)] hover:bg-red-600 active:scale-95 flex justify-center items-center gap-2 transition-all">
-                 <IconMic className="w-6 h-6" /> 録音スタート
+               <button type="button" onClick={startRecording} disabled={isCheckingRecording} className="w-full py-4 sm:py-5 bg-red-500 text-white rounded-2xl font-bold text-xl shadow-[0_8px_20px_rgba(239,68,68,0.3)] hover:bg-red-600 active:scale-95 flex justify-center items-center gap-2 transition-all">
+                 <IconMic className="w-6 h-6" /> {isCheckingRecording ? recordingCountdown : "録音スタート"}
                </button>
              ) : (
                <button type="button" onClick={stopRecording} className="w-full py-4 sm:py-5 bg-gray-800 text-white rounded-2xl font-bold text-xl shadow-lg hover:bg-gray-900 active:scale-95 flex justify-center items-center gap-2 transition-all">
-                 <IconSend className="w-6 h-6" /> 完了して確認へ！
+                 <IconSend className="w-6 h-6" /> 読み終わったら押してください
                </button>
              )
            ) : (
