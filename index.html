@@ -927,7 +927,10 @@ ${commonEvalPrompt}
 
       const speakWord = (word) => {
         if (!window.speechSynthesis) return;
-        const cleanWord = word.replace(/[^a-zA-Z0-9'-]/g, '');
+        const dollarAmount = word.trim().match(/^\$(\d+)[.,;:!?]?$/);
+        const cleanWord = dollarAmount
+          ? `${dollarAmount[1]} ${Number(dollarAmount[1]) === 1 ? 'dollar' : 'dollars'}`
+          : word.replace(/[^a-zA-Z0-9'-]/g, '');
         if (!cleanWord) return;
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(cleanWord);
