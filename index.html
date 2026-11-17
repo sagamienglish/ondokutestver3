@@ -1387,7 +1387,7 @@ ${commonEvalPrompt}
            {!audioUrl ? (
              !isRecording ? (
                <button type="button" onClick={startRecording} disabled={isCheckingRecording} className="w-full py-4 sm:py-5 bg-red-500 text-white rounded-2xl font-bold text-xl shadow-[0_8px_20px_rgba(239,68,68,0.3)] hover:bg-red-600 active:scale-95 flex justify-center items-center gap-2 transition-all">
-                 <IconMic className="w-6 h-6" /> {isCheckingRecording ? "録音準備中" : "録音スタート"}
+                 <IconMic className="w-6 h-6" /> {isCheckingRecording ? "録音準備中" : recordingError ? "この本文でもう一度録音" : "録音スタート"}
                </button>
              ) : (
                <button type="button" onClick={stopRecording} className="w-full py-4 sm:py-5 bg-gray-800 text-white rounded-2xl font-bold text-xl shadow-lg hover:bg-gray-900 active:scale-95 flex justify-center items-center gap-2 transition-all">
