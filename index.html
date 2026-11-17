@@ -214,6 +214,7 @@
       const [isRecording, setIsRecording] = useState(false);
       const [audioBlob, setAudioBlob] = useState(null);
       const [audioUrl, setAudioUrl] = useState(null);
+      const [scoringError, setScoringError] = useState(null);
       const [scoreResult, setScoreResult] = useState(null);
       const [isExporting, setIsExporting] = useState(false);
       const [exportProgress, setExportProgress] = useState({ percent: 0, label: '' });
@@ -321,6 +322,7 @@
       };
 
       const startRecording = async () => {
+        setScoringError(null);
         setTimeRemaining(timeLimit); setAudioBlob(null); setAudioUrl(null);
         try {
           const stream = streamRef.current || await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -349,6 +351,7 @@
       };
 
       const startScoringQueue = () => {
+        setScoringError(null);
         const delaySeconds = Math.floor(Math.random() * 30);
         if (delaySeconds === 0) { processScoring(); return; }
         
@@ -516,7 +519,8 @@ ${commonEvalPrompt}
 
         } catch (error) {
           console.error(error);
-          alert("採点エラーが発生しました。\n原因: " + error.message + "\n\n1分ほど待ってから『録り直す』→『分析する』を試してみてください。");
+          setScoringError(error.message || "詳細不明");
+          setTimeRemaining(timeLimit);
           setStep('recording');
         }
       };
@@ -1336,15 +1340,24 @@ ${commonEvalPrompt}
              )
            ) : (
              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 shadow-inner flex flex-col gap-3 animate-fade-in">
+                {scoringError && (
+                  <div role="alert" className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+                    <p className="font-bold">採点できませんでした。録音は残っています。</p>
+                    <p>少し待ってから「同じ録音で再試行」を押してください。</p>
+                    <p>原因: {scoringError}</p>
+                  </div>
+                )}
                 <audio controls src={audioUrl} className="w-full h-12 outline-none" />
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button type="button" onClick={() => {
+                    if (scoringError && !window.confirm("この録音を削除して録り直しますか？")) return;
+                    setScoringError(null);
                     setAudioBlob(null); setAudioUrl(null); setTimeRemaining(timeLimit);
                   }} className="flex-1 py-3 bg-white text-gray-700 border border-gray-300 rounded-xl font-bold text-lg hover:bg-gray-50 active:scale-95 transition-all shadow-sm">
                     録り直す
                   </button>
                   <button type="button" onClick={startScoringQueue} className="flex-1 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-bold text-lg shadow-md hover:opacity-90 active:scale-95 flex justify-center items-center gap-2 transition-all">
-                    <IconSparkles className="w-6 h-6" /> 音声を分析する
+                    <IconSparkles className="w-6 h-6" /> {scoringError ? "同じ録音で再試行" : "音声を分析する"}
                   </button>
                 </div>
              </div>
